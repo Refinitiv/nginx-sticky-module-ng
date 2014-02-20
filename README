@@ -1,4 +1,13 @@
 Nginx Sticky Module 
+
+modified version; included secure/httponly for routecookie
+from a patch by 
+
+- cloned from: https://code.google.com/p/nginx-sticky-module/
+- patch included: https://code.google.com/p/nginx-sticky-module/issues/detail?id=24
+
+
+
 --
 
 Description:
@@ -43,7 +52,7 @@ Usage
 		server 127.0.0.1:9002;
 	}
 
-	sticky [name=route] [domain=.foo.bar] [path=/] [expires=1h] [hash=index|md5|sha1] [no_fallback];
+	sticky [name=route] [domain=.foo.bar] [path=/] [expires=1h] [hash=index|md5|sha1] [no_fallback] [secure] [httponly];
 	  - name:    the name of the cookies used to track the persistant upstream srv
 	             default: route
 
@@ -82,6 +91,10 @@ Usage
 		              Proxy Error) if a request comes with a cookie and the
 		              corresponding backend is unavailable.
 
+	  -secure    enable secure cookies; transfered only via https
+	  -httponly  enable cookies not to be leaked to via js
+
+
 Detail Mechanism
 	see docs/sticky.{vsd,pdf}	
 
@@ -99,11 +112,15 @@ TODO
 
 Author
 	Jerome Loyet <jerome at loyet dot net>
+	
 
 Copyright & License
 	This module is licenced under the BSD license.
 
 	Copyright (C) 2010 Jerome Loyet (jerome at loyet dot net)
+	Copyright (C) 2012 Markus Li... (markus.li...@gmail.com)
+	Copyright (C) 2014 Markus Manzke (goodman at nginx-goodies dot com)
+
 
 	Redistribution and use in source and binary forms, with or without
 	modification, are permitted provided that the following conditions

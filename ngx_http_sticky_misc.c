@@ -16,7 +16,7 @@
 	#define ngx_str_set(str, text) (str)->len = sizeof(text) - 1; (str)->data = (u_char *) text
 #endif
 
-ngx_int_t ngx_http_sticky_misc_set_cookie(ngx_http_request_t *r, ngx_str_t *name, ngx_str_t *value, ngx_str_t *domain, ngx_str_t *path, time_t expires)
+ngx_int_t ngx_http_sticky_misc_set_cookie(ngx_http_request_t *r, ngx_str_t *name, ngx_str_t *value, ngx_str_t *domain, ngx_str_t *path, time_t expires, unsigned secure, unsigned httponly)
 {
 	u_char  *cookie, *p;
 	size_t  len;
@@ -48,6 +48,16 @@ ngx_int_t ngx_http_sticky_misc_set_cookie(ngx_http_request_t *r, ngx_str_t *name
 		len += sizeof("; Path=") - 1 + path->len;
 	}
 
+	/* ; Secure */
+	if (secure) {
+		len += sizeof("; Secure") - 1;
+	}
+
+	/* ; HttpOnly */
+	if (httponly) {
+		len += sizeof("; HttpOnly") - 1;
+	}
+
 	cookie = ngx_pnalloc(r->pool, len);	
 	if (cookie == NULL) {
 		return NGX_ERROR;
@@ -70,6 +80,14 @@ ngx_int_t ngx_http_sticky_misc_set_cookie(ngx_http_request_t *r, ngx_str_t *name
 	if (path->len > 0) {
 		p = ngx_copy(p, "; Path=", sizeof("; Path=") - 1);	
 		p = ngx_copy(p, path->data, path->len);
+	}
+
+	if (secure) {
+		p = ngx_copy(p, "; Secure", sizeof("; Secure") - 1);	
+	}
+
+	if (httponly) {
+		p = ngx_copy(p, "; HttpOnly", sizeof("; HttpOnly") - 1);	
 	}
 
 	part = &r->headers_out.headers.part;

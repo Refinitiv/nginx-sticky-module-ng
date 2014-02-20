@@ -23,6 +23,8 @@ typedef struct {
 	ngx_str_t                     cookie_domain;
 	ngx_str_t                     cookie_path;
 	time_t                        cookie_expires;
+	unsigned                      cookie_secure:1;
+	unsigned                      cookie_httponly:1;
 	ngx_str_t                     hmac_key;
 	ngx_http_sticky_misc_hash_pt  hash;
 	ngx_http_sticky_misc_hmac_pt  hmac;
@@ -358,7 +360,7 @@ static ngx_int_t ngx_http_get_sticky_peer(ngx_peer_connection_t *pc, void *data)
 
 			if (iphp->rrp.peers->peer[i].sockaddr == pc->sockaddr && iphp->rrp.peers->peer[i].socklen == pc->socklen) {
 				if (conf->hash || conf->hmac || conf->text) {
-					ngx_http_sticky_misc_set_cookie(iphp->request, &conf->cookie_name, &conf->peers[i].digest, &conf->cookie_domain, &conf->cookie_path, conf->cookie_expires);
+					ngx_http_sticky_misc_set_cookie(iphp->request, &conf->cookie_name, &conf->peers[i].digest, &conf->cookie_domain, &conf->cookie_path, conf->cookie_expires, conf->cookie_secure, conf->cookie_httponly);
 					ngx_log_debug(NGX_LOG_DEBUG_HTTP, pc->log, 0, "[sticky/get_sticky_peer] set cookie \"%V\" value=\"%V\" index=%ui", &conf->cookie_name, &conf->peers[i].digest, i);
 				} else {
 					ngx_str_t route;
@@ -373,7 +375,7 @@ static ngx_int_t ngx_http_get_sticky_peer(ngx_peer_connection_t *pc, void *data)
 					}
 					ngx_snprintf(route.data, route.len, "%d", i);
 					route.len = ngx_strlen(route.data);
-					ngx_http_sticky_misc_set_cookie(iphp->request, &conf->cookie_name, &route, &conf->cookie_domain, &conf->cookie_path, conf->cookie_expires);
+					ngx_http_sticky_misc_set_cookie(iphp->request, &conf->cookie_name, &route, &conf->cookie_domain, &conf->cookie_path, conf->cookie_expires, conf->cookie_secure, conf->cookie_httponly);
 					ngx_log_debug(NGX_LOG_DEBUG_HTTP, pc->log, 0, "[sticky/get_sticky_peer] set cookie \"%V\" value=\"%V\" index=%ui", &conf->cookie_name, &tmp, i);
 				}
 				break; /* found and hopefully the cookie have been set */
@@ -401,6 +403,8 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 	ngx_str_t path = ngx_string("");
 	ngx_str_t hmac_key = ngx_string("");
 	time_t expires = NGX_CONF_UNSET;
+	unsigned secure = 0;
+	unsigned httponly = 0;
 	ngx_http_sticky_misc_hash_pt hash = NGX_CONF_UNSET_PTR;
 	ngx_http_sticky_misc_hmac_pt hmac = NULL;
 	ngx_http_sticky_misc_text_pt text = NULL;
@@ -474,6 +478,16 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid value for \"expires=\"");
 				return NGX_CONF_ERROR;
 			}
+			continue;
+		}
+
+		if (ngx_strncmp(value[i].data, "secure", 6) == 0 && value[i].len == 6) {
+			secure = 1;
+			continue;
+		}
+
+		if (ngx_strncmp(value[i].data, "httponly", 8) == 0 && value[i].len == 8) {
+			httponly = 1;
 			continue;
 		}
 
@@ -646,6 +660,8 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 	sticky_conf->cookie_domain = domain;
 	sticky_conf->cookie_path = path;
 	sticky_conf->cookie_expires = expires;
+	sticky_conf->cookie_secure = secure;
+	sticky_conf->cookie_httponly = httponly;
 	sticky_conf->hash = hash;
 	sticky_conf->hmac = hmac;
 	sticky_conf->text = text;
