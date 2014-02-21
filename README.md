@@ -74,8 +74,8 @@ Modify your compile of Nginx by adding the following directive
 - hash:    the hash mechanism to encode upstream server. It cant' be used with hmac.
   default: md5
 
-  - md5|sha1: well known hash
-  - index:    it's not hashed, an in-memory index is used instead, it's quicker and the overhead is shorter
+    - md5|sha1: well known hash
+    - index:    it's not hashed, an in-memory index is used instead, it's quicker and the overhead is shorter
     Warning: the matching against upstream servers list
     is inconsistent. So, at reload, if upstreams servers
     has changed, index values are not guaranted to
@@ -88,15 +88,15 @@ Modify your compile of Nginx by adding the following directive
     md5|sha1: well known hash
     default: none. see hash.
 
--hmac_key: the key to use with hmac. It's mandatory when hmac is set
+- hmac_key: the key to use with hmac. It's mandatory when hmac is set
            default: nothing.
 
--no_fallback: when this flag is set, nginx will return a 502 (Bad Gateway or
+- no_fallback: when this flag is set, nginx will return a 502 (Bad Gateway or
               Proxy Error) if a request comes with a cookie and the
               corresponding backend is unavailable.
 
--secure    enable secure cookies; transfered only via https
--httponly  enable cookies not to be leaked to via js
+- secure    enable secure cookies; transfered only via https
+- httponly  enable cookies not to be leaked to via js
 
 
 # Detail Mechanism
@@ -111,10 +111,12 @@ Modify your compile of Nginx by adding the following directive
 
 
 # Contributing
-	https://bitbucket.org/nginx-goodies/nginx-sticky-session-ng
+	
+https://bitbucket.org/nginx-goodies/nginx-sticky-session-ng
 
 # TODO
-	see Todo.md
+
+see Todo.md
   
 # Author & Credits
 
