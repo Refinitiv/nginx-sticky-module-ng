@@ -1,10 +1,5 @@
-
 /*
- * 
  * Copyright (C) 2010 Jerome Loyet (jerome at loyet dot net)
- * Copyright (C) 2012 Markus Linnala (markus.linnala@gmail.com)
- * Copyright (C) 2014 Markus Manzke (goodman at nginx-goodies dot com)
- * 
  */
 
 
@@ -20,6 +15,16 @@
 #ifndef ngx_str_set
   #define ngx_str_set(str, text) (str)->len = sizeof(text) - 1; (str)->data = (u_char *) text
 #endif
+ 
+ngx_int_t cookie_expires(char *str, size_t size, time_t t) 
+{
+  char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+  char *wdays[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+  struct tm  e;
+  gmtime_r(&t, &e);
+  return snprintf(str, size, "%s, %02d-%s-%04d %02d:%02d:%02d GMT",
+    wdays[e.tm_wday], e.tm_mday, months[e.tm_mon], e.tm_year + 1900, e.tm_hour,e.tm_min,e.tm_sec);
+}
 
 ngx_int_t ngx_http_sticky_misc_set_cookie(ngx_http_request_t *r, ngx_str_t *name, ngx_str_t *value, ngx_str_t *domain, ngx_str_t *path, time_t expires, unsigned secure, unsigned httponly)
 {
@@ -29,6 +34,8 @@ ngx_int_t ngx_http_sticky_misc_set_cookie(ngx_http_request_t *r, ngx_str_t *name
   ngx_str_t remove;
   ngx_list_part_t *part;
   ngx_uint_t i;
+  char expires_str[80];
+  int expires_len;
 
   if (value == NULL) {
     ngx_str_set(&remove, "_remove_");
@@ -42,10 +49,10 @@ ngx_int_t ngx_http_sticky_misc_set_cookie(ngx_http_request_t *r, ngx_str_t *name
   if (domain->len > 0) {
     len += sizeof("; Domain=") - 1 + domain->len;
   }
-
-  /*; Max-Age= */
+  /*; Expires= */
   if (expires != NGX_CONF_UNSET) {
-    len += sizeof("; Max-Age=") - 1 + NGX_TIME_T_LEN;
+   expires_len = cookie_expires(expires_str, sizeof(expires_str), time(NULL) + expires);
+   len += sizeof("; Expires=") - 1 + expires_len;
   }
 
   /* ; Path= */
@@ -78,8 +85,8 @@ ngx_int_t ngx_http_sticky_misc_set_cookie(ngx_http_request_t *r, ngx_str_t *name
   }
 
   if (expires != NGX_CONF_UNSET) {
-    p = ngx_copy(p, "; Max-Age=", sizeof("; Max-Age=") - 1);
-    p = ngx_snprintf(p, NGX_TIME_T_LEN, "%T", expires);
+    p = ngx_copy(p, "; Expires=", sizeof("; Expires=") - 1);
+    p = ngx_copy(p, expires_str, expires_len);
   }
 
   if (path->len > 0) {
