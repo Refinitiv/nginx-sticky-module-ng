@@ -1,14 +1,9 @@
 # Nginx Sticky Module 
 
-modified version; included secure/httponly for route-cookie
-from a patch by markus linnala
 
-- cloned from: https://code.google.com/p/nginx-sticky-module/
-- patch included: https://code.google.com/p/nginx-sticky-module/issues/detail?id=24
+modified and extended version; see Changelog.txt 
 
 
-
---
 
 # Description
 
@@ -41,7 +36,7 @@ You'll need to re-compile Nginx from source to include this module.
 Modify your compile of Nginx by adding the following directive
 (modified to suit your path of course):
 
-    ./configure ... --add-module=/absolute/path/to/nginx-sticky-module
+    ./configure ... --add-module=/absolute/path/to/nginx-sticky-module-ng
     make
     make install
 
@@ -118,10 +113,11 @@ https://bitbucket.org/nginx-goodies/nginx-sticky-session-ng
 
 see Todo.md
   
-# Author & Credits
+# Authors & Credits
 
 - Jerome Loyet, inital module
 - Markus Linnala, httponly/secure-cookies-patch
+- Peter Bowey, Nginx 1.5.8 API-Change 
 
 # Copyright & License
 
@@ -130,6 +126,7 @@ see Todo.md
     Copyright (C) 2010 Jerome Loyet (jerome at loyet dot net)
     Copyright (C) 2012 Markus Linnala (markus.linnala@gmail.com)
     Copyright (C) 2014 Markus Manzke (goodman at nginx-goodies dot com)
+    Copyright (C) 2014 Peter Bowey
 
   
     Redistribution and use in source and binary forms, with or without

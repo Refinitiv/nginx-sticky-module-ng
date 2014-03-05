@@ -1,0 +1,13 @@
+
+
+1.2.2 - 2014-03-04
+
+  - fix a bug due to a change in nginx-api (>= 1.5.8)
+    patch included: https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng/issue/1/nginx-158-api-change-for-ngx_sock_ntop
+    
+
+1.2.1 - 2014-02-20
+
+  - cloned from: https://code.google.com/p/nginx-sticky-module/
+  - route-cookie might be configured to be httponly/secure  
+    patch included: https://code.google.com/p/nginx-sticky-module/issues/detail?id=24
