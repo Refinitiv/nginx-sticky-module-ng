@@ -10,6 +10,11 @@
 
 #include "ngx_http_sticky_misc.h"
 
+#if (NGX_UPSTREAM_CHECK_MODULE)
+#include "ngx_http_upstream_check_handler.h"
+#endif
+
+
 /* define a peer */
 typedef struct {
 	ngx_http_upstream_rr_peer_t *rr_peer;
