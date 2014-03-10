@@ -1,0 +1,481 @@
+Index: ngx_http_sticky_misc.h
+===================================================================
+--- ngx_http_sticky_misc.h	(revision 49)
++++ ngx_http_sticky_misc.h	(working copy)
+@@ -15,7 +15,7 @@
+ typedef ngx_int_t (*ngx_http_sticky_misc_hmac_pt)(ngx_pool_t *pool, void *in, size_t len, ngx_str_t *key, ngx_str_t *digest);
+ typedef ngx_int_t (*ngx_http_sticky_misc_text_pt)(ngx_pool_t *pool, struct sockaddr *in, ngx_str_t *digest);
+ 
+-ngx_int_t ngx_http_sticky_misc_set_cookie (ngx_http_request_t *r, ngx_str_t *name, ngx_str_t *value, ngx_str_t *domain, ngx_str_t *path, time_t expires);
++ngx_int_t ngx_http_sticky_misc_set_cookie (ngx_http_request_t *r, ngx_str_t *name, ngx_str_t *value, ngx_str_t *domain, ngx_str_t *path, time_t expires, unsigned secure, unsigned httponly);
+ ngx_int_t ngx_http_sticky_misc_md5(ngx_pool_t *pool, void *in, size_t len, ngx_str_t *digest);
+ ngx_int_t ngx_http_sticky_misc_sha1(ngx_pool_t *pool, void *in, size_t len, ngx_str_t *digest);
+ ngx_int_t ngx_http_sticky_misc_hmac_md5(ngx_pool_t *pool, void *in, size_t len, ngx_str_t *key, ngx_str_t *digest);
+Index: t/basic.t
+===================================================================
+--- t/basic.t	(revision 0)
++++ t/basic.t	(revision 0)
+@@ -0,0 +1,350 @@
++# vi:filetype=
++
++use lib 'lib';
++use Test::Nginx::Socket; # 'no_plan';
++use URI::Escape;
++
++repeat_each(1);
++
++plan tests => repeat_each() * 2 * blocks();
++
++run_tests();
++
++__DATA__
++
++=== TEST 1: hash=md5
++--- http_config
++    upstream backend {
++        server localhost:$TEST_NGINX_SERVER_PORT;
++        server 127.0.0.2:80;
++        server 127.0.0.3:80;
++        server 127.0.0.4:80;
++        server 127.0.0.5:80;
++        sticky name=route hash=md5;
++    }
++--- config
++    location /backend {
++	rewrite /backend /frontend break;
++        proxy_pass http://backend;
++	proxy_set_header Host $host;
++    }
++    location /frontend {
++        echo -n $echo_client_request_headers;
++    }
++--- request
++GET /backend
++--- response_headers
++Set-Cookie: route=908c1a9fb15095f454c085282da20d92
++
++=== TEST 2: hash=sha1
++--- http_config
++    upstream backend {
++        server localhost:$TEST_NGINX_SERVER_PORT;
++        server 127.0.0.2:80;
++        server 127.0.0.3:80;
++        server 127.0.0.4:80;
++        server 127.0.0.5:80;
++        sticky name=route hash=sha1;
++    }
++--- config
++    location /backend {
++	rewrite /backend /frontend break;
++        proxy_pass http://backend;
++	proxy_set_header Host $host;
++    }
++    location /frontend {
++        echo -n $echo_client_request_headers;
++    }
++--- request
++GET /backend
++--- response_headers
++Set-Cookie: route=4262de333a18749d31416a617184734678797276
++
++=== TEST 3: hmac=md5
++--- http_config
++    upstream backend {
++        server localhost:$TEST_NGINX_SERVER_PORT;
++        server 127.0.0.2:80;
++        server 127.0.0.3:80;
++        server 127.0.0.4:80;
++        server 127.0.0.5:80;
++        sticky name=route hmac=md5 hmac_key=secret;
++    }
++--- config
++    location /backend {
++	rewrite /backend /frontend break;
++        proxy_pass http://backend;
++	proxy_set_header Host $host;
++    }
++    location /frontend {
++        echo -n $echo_client_request_headers;
++    }
++--- request
++GET /backend
++--- response_headers
++Set-Cookie: route=d20fd0a9eb6864058781ed6104e4c9fd
++
++=== TEST 4: hmac=sha1
++--- http_config
++    upstream backend {
++        server localhost:$TEST_NGINX_SERVER_PORT;
++        server 127.0.0.2:80;
++        server 127.0.0.3:80;
++        server 127.0.0.4:80;
++        server 127.0.0.5:80;
++        sticky name=route hmac=sha1 hmac_key=secret;
++    }
++--- config
++    location /backend {
++	rewrite /backend /frontend break;
++        proxy_pass http://backend;
++	proxy_set_header Host $host;
++    }
++    location /frontend {
++        echo -n $echo_client_request_headers;
++    }
++--- request
++GET /backend
++--- response_headers
++Set-Cookie: route=34734c8d4b451151897b62db281c0b055e035adc
++
++=== TEST 5: hmac=sha1 hmac_key=secret2
++--- http_config
++    upstream backend {
++        server localhost:$TEST_NGINX_SERVER_PORT;
++        server 127.0.0.2:80;
++        server 127.0.0.3:80;
++        server 127.0.0.4:80;
++        server 127.0.0.5:80;
++        sticky name=route hmac=sha1 hmac_key=secret2;
++    }
++--- config
++    location /backend {
++	rewrite /backend /frontend break;
++        proxy_pass http://backend;
++	proxy_set_header Host $host;
++    }
++    location /frontend {
++        echo -n $echo_client_request_headers;
++    }
++--- request
++GET /backend
++--- response_headers
++Set-Cookie: route=959bfc3973750a198925a3aedf9570f5d9b7e6f8
++
++=== TEST 6: domain=.example.com
++--- http_config
++    upstream backend {
++        server localhost:$TEST_NGINX_SERVER_PORT;
++        server 127.0.0.2:80;
++        server 127.0.0.3:80;
++        server 127.0.0.4:80;
++        server 127.0.0.5:80;
++        sticky domain=.example.com;
++    }
++--- config
++    location /backend {
++	rewrite /backend /frontend break;
++        proxy_pass http://backend;
++	proxy_set_header Host $host;
++    }
++    location /frontend {
++        echo -n $echo_client_request_headers;
++    }
++--- request
++GET /backend
++--- response_headers
++Set-Cookie: route=908c1a9fb15095f454c085282da20d92; Domain=.example.com
++
++=== TEST 7: path=/example
++--- http_config
++    upstream backend {
++        server localhost:$TEST_NGINX_SERVER_PORT;
++        server 127.0.0.2:80;
++        server 127.0.0.3:80;
++        server 127.0.0.4:80;
++        server 127.0.0.5:80;
++        sticky path=/example;
++    }
++--- config
++    location /backend {
++	rewrite /backend /frontend break;
++        proxy_pass http://backend;
++	proxy_set_header Host $host;
++    }
++    location /frontend {
++        echo -n $echo_client_request_headers;
++    }
++--- request
++GET /backend
++--- response_headers
++Set-Cookie: route=908c1a9fb15095f454c085282da20d92; Path=/example
++
++=== TEST 8: expires=1h
++--- http_config
++    upstream backend {
++        server localhost:$TEST_NGINX_SERVER_PORT;
++        server 127.0.0.2:80;
++        server 127.0.0.3:80;
++        server 127.0.0.4:80;
++        server 127.0.0.5:80;
++        sticky expires=1h;
++    }
++--- config
++    location /backend {
++	rewrite /backend /frontend break;
++        proxy_pass http://backend;
++	proxy_set_header Host $host;
++    }
++    location /frontend {
++        echo -n $echo_client_request_headers;
++    }
++--- request
++GET /backend
++--- response_headers
++Set-Cookie: route=908c1a9fb15095f454c085282da20d92; Max-Age=3600
++
++=== TEST 9: text=md5
++--- http_config
++    upstream backend {
++        server localhost:$TEST_NGINX_SERVER_PORT;
++        server 127.0.0.2:80;
++        server 127.0.0.3:80;
++        server 127.0.0.4:80;
++        server 127.0.0.5:80;
++        sticky name=route text=md5;
++    }
++--- config
++    location /backend {
++	rewrite /backend /frontend break;
++        proxy_pass http://backend;
++	proxy_set_header Host $host;
++    }
++    location /frontend {
++        echo -n $echo_client_request_headers;
++    }
++--- request
++GET /backend
++--- response_headers
++Set-Cookie: route=f6082e846954099610d58161bf189f37
++
++=== TEST 10: text=sha1
++--- http_config
++    upstream backend {
++        server localhost:$TEST_NGINX_SERVER_PORT;
++        server 127.0.0.2:80;
++        server 127.0.0.3:80;
++        server 127.0.0.4:80;
++        server 127.0.0.5:80;
++        sticky name=route text=sha1;
++    }
++--- config
++    location /backend {
++	rewrite /backend /frontend break;
++        proxy_pass http://backend;
++	proxy_set_header Host $host;
++    }
++    location /frontend {
++        echo -n $echo_client_request_headers;
++    }
++--- request
++GET /backend
++--- response_headers
++Set-Cookie: route=17305d40bf37f65329da1850efddd32840891e32
++
++=== TEST 11: text=raw
++--- http_config
++    upstream backend {
++        server localhost:$TEST_NGINX_SERVER_PORT;
++        server 127.0.0.2:80;
++        server 127.0.0.3:80;
++        server 127.0.0.4:80;
++        server 127.0.0.5:80;
++        sticky name=route text=raw;
++    }
++--- config
++    location /backend {
++	rewrite /backend /frontend break;
++        proxy_pass http://backend;
++	proxy_set_header Host $host;
++    }
++    location /frontend {
++        echo -n $echo_client_request_headers;
++    }
++--- request
++GET /backend
++--- response_headers
++Set-Cookie: route=127.0.0.1:1984
++
++=== TEST 12: no_fallback
++--- http_config
++    upstream backend {
++        server localhost:$TEST_NGINX_SERVER_PORT;
++        server 127.0.0.2:80;
++        server 127.0.0.3:80;
++        server 127.0.0.4:80;
++        server 127.0.0.5:80;
++        sticky no_fallback;
++    }
++--- config
++    location /backend {
++	rewrite /backend /frontend break;
++        proxy_pass http://backend;
++	proxy_set_header Host $host;
++    }
++    location /frontend {
++        echo -n $echo_client_request_headers;
++    }
++--- request
++GET /backend
++--- response_headers
++Set-Cookie: route=908c1a9fb15095f454c085282da20d92
++
++=== TEST 13: secure
++--- http_config
++    upstream backend {
++        server localhost:$TEST_NGINX_SERVER_PORT;
++        server 127.0.0.2:80;
++        server 127.0.0.3:80;
++        server 127.0.0.4:80;
++        server 127.0.0.5:80;
++        sticky secure;
++    }
++--- config
++    location /backend {
++	rewrite /backend /frontend break;
++        proxy_pass http://backend;
++	proxy_set_header Host $host;
++    }
++    location /frontend {
++        echo -n $echo_client_request_headers;
++    }
++--- request
++GET /backend
++--- response_headers
++Set-Cookie: route=908c1a9fb15095f454c085282da20d92; Secure
++
++=== TEST 14: httponly
++--- http_config
++    upstream backend {
++        server localhost:$TEST_NGINX_SERVER_PORT;
++        server 127.0.0.2:80;
++        server 127.0.0.3:80;
++        server 127.0.0.4:80;
++        server 127.0.0.5:80;
++        sticky httponly;
++    }
++--- config
++    location /backend {
++	rewrite /backend /frontend break;
++        proxy_pass http://backend;
++	proxy_set_header Host $host;
++    }
++    location /frontend {
++        echo -n $echo_client_request_headers;
++    }
++--- request
++GET /backend
++--- response_headers
++Set-Cookie: route=908c1a9fb15095f454c085282da20d92; HttpOnly
++
+Index: ngx_http_sticky_module.c
+===================================================================
+--- ngx_http_sticky_module.c	(revision 49)
++++ ngx_http_sticky_module.c	(working copy)
+@@ -23,6 +23,8 @@
+ 	ngx_str_t                     cookie_domain;
+ 	ngx_str_t                     cookie_path;
+ 	time_t                        cookie_expires;
++	unsigned                      cookie_secure:1;
++	unsigned                      cookie_httponly:1;
+ 	ngx_str_t                     hmac_key;
+ 	ngx_http_sticky_misc_hash_pt  hash;
+ 	ngx_http_sticky_misc_hmac_pt  hmac;
+@@ -358,7 +360,7 @@
+ 
+ 			if (iphp->rrp.peers->peer[i].sockaddr == pc->sockaddr && iphp->rrp.peers->peer[i].socklen == pc->socklen) {
+ 				if (conf->hash || conf->hmac || conf->text) {
+-					ngx_http_sticky_misc_set_cookie(iphp->request, &conf->cookie_name, &conf->peers[i].digest, &conf->cookie_domain, &conf->cookie_path, conf->cookie_expires);
++					ngx_http_sticky_misc_set_cookie(iphp->request, &conf->cookie_name, &conf->peers[i].digest, &conf->cookie_domain, &conf->cookie_path, conf->cookie_expires, conf->cookie_secure, conf->cookie_httponly);
+ 					ngx_log_debug(NGX_LOG_DEBUG_HTTP, pc->log, 0, "[sticky/get_sticky_peer] set cookie \"%V\" value=\"%V\" index=%ui", &conf->cookie_name, &conf->peers[i].digest, i);
+ 				} else {
+ 					ngx_str_t route;
+@@ -373,7 +375,7 @@
+ 					}
+ 					ngx_snprintf(route.data, route.len, "%d", i);
+ 					route.len = ngx_strlen(route.data);
+-					ngx_http_sticky_misc_set_cookie(iphp->request, &conf->cookie_name, &route, &conf->cookie_domain, &conf->cookie_path, conf->cookie_expires);
++					ngx_http_sticky_misc_set_cookie(iphp->request, &conf->cookie_name, &route, &conf->cookie_domain, &conf->cookie_path, conf->cookie_expires, conf->cookie_secure, conf->cookie_httponly);
+ 					ngx_log_debug(NGX_LOG_DEBUG_HTTP, pc->log, 0, "[sticky/get_sticky_peer] set cookie \"%V\" value=\"%V\" index=%ui", &conf->cookie_name, &tmp, i);
+ 				}
+ 				break; /* found and hopefully the cookie have been set */
+@@ -401,6 +403,8 @@
+ 	ngx_str_t path = ngx_string("");
+ 	ngx_str_t hmac_key = ngx_string("");
+ 	time_t expires = NGX_CONF_UNSET;
++	unsigned secure = 0;
++	unsigned httponly = 0;
+ 	ngx_http_sticky_misc_hash_pt hash = NGX_CONF_UNSET_PTR;
+ 	ngx_http_sticky_misc_hmac_pt hmac = NULL;
+ 	ngx_http_sticky_misc_text_pt text = NULL;
+@@ -477,6 +481,16 @@
+ 			continue;
+ 		}
+ 
++		if (ngx_strncmp(value[i].data, "secure", 6) == 0 && value[i].len == 6) {
++			secure = 1;
++			continue;
++		}
++
++		if (ngx_strncmp(value[i].data, "httponly", 8) == 0 && value[i].len == 8) {
++			httponly = 1;
++			continue;
++		}
++
+ 		/* is "text=" is starting the argument ? */
+ 		if ((u_char *)ngx_strstr(value[i].data, "text=") == value[i].data) {
+ 
+@@ -646,6 +660,8 @@
+ 	sticky_conf->cookie_domain = domain;
+ 	sticky_conf->cookie_path = path;
+ 	sticky_conf->cookie_expires = expires;
++	sticky_conf->cookie_secure = secure;
++	sticky_conf->cookie_httponly = httponly;
+ 	sticky_conf->hash = hash;
+ 	sticky_conf->hmac = hmac;
+ 	sticky_conf->text = text;
+Index: ngx_http_sticky_misc.c
+===================================================================
+--- ngx_http_sticky_misc.c	(revision 49)
++++ ngx_http_sticky_misc.c	(working copy)
+@@ -16,7 +16,7 @@
+ 	#define ngx_str_set(str, text) (str)->len = sizeof(text) - 1; (str)->data = (u_char *) text
+ #endif
+ 
+-ngx_int_t ngx_http_sticky_misc_set_cookie(ngx_http_request_t *r, ngx_str_t *name, ngx_str_t *value, ngx_str_t *domain, ngx_str_t *path, time_t expires)
++ngx_int_t ngx_http_sticky_misc_set_cookie(ngx_http_request_t *r, ngx_str_t *name, ngx_str_t *value, ngx_str_t *domain, ngx_str_t *path, time_t expires, unsigned secure, unsigned httponly)
+ {
+ 	u_char  *cookie, *p;
+ 	size_t  len;
+@@ -48,6 +48,16 @@
+ 		len += sizeof("; Path=") - 1 + path->len;
+ 	}
+ 
++	/* ; Secure */
++	if (secure) {
++		len += sizeof("; Secure") - 1;
++	}
++
++	/* ; HttpOnly */
++	if (httponly) {
++		len += sizeof("; HttpOnly") - 1;
++	}
++
+ 	cookie = ngx_pnalloc(r->pool, len);	
+ 	if (cookie == NULL) {
+ 		return NGX_ERROR;
+@@ -72,6 +82,14 @@
+ 		p = ngx_copy(p, path->data, path->len);
+ 	}
+ 
++	if (secure) {
++		p = ngx_copy(p, "; Secure", sizeof("; Secure") - 1);	
++	}
++
++	if (httponly) {
++		p = ngx_copy(p, "; HttpOnly", sizeof("; HttpOnly") - 1);	
++	}
++
+ 	part = &r->headers_out.headers.part;
+ 	elt = part->elts;
+ 	set_cookie = NULL;
+
+
