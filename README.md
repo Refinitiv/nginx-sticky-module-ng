@@ -101,13 +101,18 @@ Modify your compile of Nginx by adding the following directive
 # Warnings:
 
 - sticky module does not work with the "backup" option of the "server" configuration item.
-- sticky module does not work with the nginx_http_upstream_check_module.
+- sticky module might work with the nginx_http_upstream_check_module (up from version 1.2.3)
 - sticky module may require to configure nginx with SSL support.
 
 
 # Contributing
 	
-https://bitbucket.org/nginx-goodies/nginx-sticky-session-ng
+- https://bitbucket.org/nginx-goodies/nginx-sticky-session-ng
+
+
+# Downloads
+
+- see tags: https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng/downloads
 
 # TODO
 
@@ -126,7 +131,6 @@ see Todo.md
     Copyright (C) 2010 Jerome Loyet (jerome at loyet dot net)
     Copyright (C) 2012 Markus Linnala (markus.linnala@gmail.com)
     Copyright (C) 2014 Markus Manzke (goodman at nginx-goodies dot com)
-    Copyright (C) 2014 Peter Bowey
 
   
     Redistribution and use in source and binary forms, with or without

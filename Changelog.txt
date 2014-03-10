@@ -1,4 +1,7 @@
 
+1.2.3 - 2014-03-10
+  - sticky-module might work now with upstream-check-module
+    https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng/issue/3/patch-to-allow
 
 1.2.2 - 2014-03-04
 
