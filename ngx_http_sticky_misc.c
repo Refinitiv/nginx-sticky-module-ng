@@ -15,7 +15,10 @@
 #ifndef ngx_str_set
   #define ngx_str_set(str, text) (str)->len = sizeof(text) - 1; (str)->data = (u_char *) text
 #endif
- 
+
+// /* - bugfix for compiling on sles11 - needs gcc4.6 or later*/
+// #pragma GCC diagnostic ignored "-Wuninitialized" 
+
 static ngx_int_t cookie_expires(char *str, size_t size, time_t t) 
 {
   char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
@@ -36,7 +39,8 @@ ngx_int_t ngx_http_sticky_misc_set_cookie(ngx_http_request_t *r, ngx_str_t *name
   ngx_list_part_t *part;
   ngx_uint_t i;
   char expires_str[80];
-  int expires_len;
+
+  int expires_len = 0;
 
   if (value == NULL) {
     ngx_str_set(&remove, "_remove_");

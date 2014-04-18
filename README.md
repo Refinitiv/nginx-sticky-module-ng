@@ -3,11 +3,9 @@
 
 modified and extended version; see Changelog.txt 
 
-
-
 # Description
 
-A nginx module to add a sticky cookie to be always forwarded the the same
+A nginx module to add a sticky cookie to be always forwarded to the same
 upstream server.
 
 When dealing with several backend servers, it's sometimes useful that one
@@ -26,9 +24,9 @@ Upstream or returns a "Bad Gateway" (depending on the no_fallback flag).
 
 Sticky module can't apply when cookies are not supported by the browser
 
-* Sticky module is based on a "best effort" algorithm. Its aim is not to handle
-* security somehow. It's been made to ensure that normal users are always
-* redirected to the same  backend server: that's all!
+> Sticky module is based on a "best effort" algorithm. Its aim is not to handle
+> security somehow. It's been made to ensure that normal users are always
+> redirected to the same  backend server: that's all!
 
 # Installation
 
@@ -102,17 +100,19 @@ Modify your compile of Nginx by adding the following directive
 
 - sticky module does not work with the "backup" option of the "server" configuration item.
 - sticky module might work with the nginx_http_upstream_check_module (up from version 1.2.3)
-- sticky module may require to configure nginx with SSL support.
+- sticky module may require to configure nginx with SSL support (when using "secure" option)
 
 
 # Contributing
-	
-- https://bitbucket.org/nginx-goodies/nginx-sticky-session-ng
+
+- please send/suggest patches as diffs
+- tickets and issues here: https://bitbucket.org/nginx-goodies/nginx-sticky-session-ng
 
 
 # Downloads
 
-- see tags: https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng/downloads
+- tarballs are available via tags from the repo: https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng/downloads
+
 
 # TODO
 
@@ -123,6 +123,9 @@ see Todo.md
 - Jerome Loyet, inital module
 - Markus Linnala, httponly/secure-cookies-patch
 - Peter Bowey, Nginx 1.5.8 API-Change 
+- anybody who suggested a patch, created an issue on bitbucket or helped improving this module 
+
+
 
 # Copyright & License
 
