@@ -405,7 +405,7 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 	ngx_str_t tmp;
 	ngx_str_t name = ngx_string("route");
 	ngx_str_t domain = ngx_string("");
-	ngx_str_t path = ngx_string("");
+	ngx_str_t path = ngx_string("/");
 	ngx_str_t hmac_key = ngx_string("");
 	time_t expires = NGX_CONF_UNSET;
 	unsigned secure = 0;
@@ -422,7 +422,7 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 		/* is "name=" is starting the argument ? */
 		if ((u_char *)ngx_strstr(value[i].data, "name=") == value[i].data) {
 
-			/* do we have at least on char after "name=" ? */
+			/* do we have at least one char after "name=" ? */
 			if (value[i].len <= sizeof("name=") - 1) {
 				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "a value must be provided to \"name=\"");
 				return NGX_CONF_ERROR;
@@ -437,7 +437,7 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 		/* is "domain=" is starting the argument ? */
 		if ((u_char *)ngx_strstr(value[i].data, "domain=") == value[i].data) {
 
-			/* do we have at least on char after "domain=" ? */
+			/* do we have at least one char after "domain=" ? */
 			if (value[i].len <= ngx_strlen("domain=")) {
 				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "a value must be provided to \"domain=\"");
 				return NGX_CONF_ERROR;
@@ -452,7 +452,7 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 		/* is "path=" is starting the argument ? */
 		if ((u_char *)ngx_strstr(value[i].data, "path=") == value[i].data) {
 
-			/* do we have at least on char after "path=" ? */
+			/* do we have at least one char after "path=" ? */
 			if (value[i].len <= ngx_strlen("path=")) {
 				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "a value must be provided to \"path=\"");
 				return NGX_CONF_ERROR;
@@ -467,7 +467,7 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 		/* is "expires=" is starting the argument ? */
 		if ((u_char *)ngx_strstr(value[i].data, "expires=") == value[i].data) {
 
-			/* do we have at least on char after "expires=" ? */
+			/* do we have at least one char after "expires=" ? */
 			if (value[i].len <= sizeof("expires=") - 1) {
 				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "a value must be provided to \"expires=\"");
 				return NGX_CONF_ERROR;
@@ -505,7 +505,7 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 				return NGX_CONF_ERROR;
 			}
 
-			/* do we have at least on char after "name=" ? */
+			/* do we have at least one char after "name=" ? */
 			if (value[i].len <= sizeof("text=") - 1) {
 				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "a value must be provided to \"text=\"");
 				return NGX_CONF_ERROR;
@@ -546,7 +546,7 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 				return NGX_CONF_ERROR;
 			}
 
-			/* do we have at least on char after "hash=" ? */
+			/* do we have at least one char after "hash=" ? */
 			if (value[i].len <= sizeof("hash=") - 1) {
 				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "a value must be provided to \"hash=\"");
 				return NGX_CONF_ERROR;
@@ -587,7 +587,7 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 				return NGX_CONF_ERROR;
 			}
 
-			/* do we have at least on char after "hmac=" ? */
+			/* do we have at least one char after "hmac=" ? */
 			if (value[i].len <= sizeof("hmac=") - 1) {
 				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "a value must be provided to \"hmac=\"");
 				return NGX_CONF_ERROR;
@@ -615,7 +615,7 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 		/* is "hmac_key=" is starting the argument ? */
 		if ((u_char *)ngx_strstr(value[i].data, "hmac_key=") == value[i].data) {
 
-			/* do we have at least on char after "hmac_key=" ? */
+			/* do we have at least one char after "hmac_key=" ? */
 			if (value[i].len <= ngx_strlen("hmac_key=")) {
 				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "a value must be provided to \"hmac_key=\"");
 				return NGX_CONF_ERROR;
