@@ -1,6 +1,11 @@
 
+1.2.5 - 2014-07-07 
+  - setting path-defaults to / 
+    fixing issue 
+    https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng/issue/7/leaving-cookie-path-empty-in-module
+
 1.2.4 - 2014-04-18
-  - fixed an compiling-issue on some systems (SLES)
+  - fixed an compiling-issue on some systems (SLES, CentOS)
     https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng/issue/5/nginx-compile-warning
 
 1.2.3 - 2014-03-10
