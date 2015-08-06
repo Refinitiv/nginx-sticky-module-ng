@@ -3,7 +3,7 @@
  * Copyright (C) Jerome Loyet <jerome at loyet dot net>
  */
 
-
+#include <nginx.h>
 #include <ngx_config.h>
 #include <ngx_core.h>
 #include <ngx_http.h>
@@ -337,7 +337,12 @@ static ngx_int_t ngx_http_get_sticky_peer(ngx_peer_connection_t *pc, void *data)
 	if (peer && selected_peer >= 0) {
 		ngx_log_debug(NGX_LOG_DEBUG_HTTP, pc->log, 0, "[sticky/get_sticky_peer] peer found at index %i", selected_peer);
 
+#if defined(nginx_version) && nginx_version >= 1009000
+		iphp->rrp.current = peer;
+#else
 		iphp->rrp.current = iphp->selected_peer;
+#endif		
+		
 		pc->cached = 0;
 		pc->connection = NULL;
 		pc->sockaddr = peer->sockaddr;
