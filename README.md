@@ -58,7 +58,7 @@ Modify your compile of Nginx by adding the following directive
   default: nothing. Let the browser handle this.
 
 - path:    the path in which the cookie will be valid
-  default: nothing. Let the browser handle this.
+  default: /
 
 - expires: the validity duration of the cookie
   default: nothing. It's a session cookie.
@@ -88,19 +88,25 @@ Modify your compile of Nginx by adding the following directive
               Proxy Error) if a request comes with a cookie and the
               corresponding backend is unavailable.
 
-- secure    enable secure cookies; transfered only via https
-- httponly  enable cookies not to be leaked to via js
+- secure    enable secure cookies; transferred only via https
+- httponly  enable cookies not to be leaked via js
 
 
 # Detail Mechanism
 
 - see docs/sticky.{vsd,pdf}	
 
-# Warnings:
+# Issues and Warnings:
+
+- when using different upstream-configs with stickyness that use the same domain but 
+  refer to different location - configs it might be wise to set a different path / route -  
+  option on each of this upstream-configs like described here:
+  https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng/issue/7/leaving-cookie-path-empty-in-module
 
 - sticky module does not work with the "backup" option of the "server" configuration item.
 - sticky module might work with the nginx_http_upstream_check_module (up from version 1.2.3)
 - sticky module may require to configure nginx with SSL support (when using "secure" option)
+  
 
 
 # Contributing
@@ -120,9 +126,10 @@ see Todo.md
   
 # Authors & Credits
 
-- Jerome Loyet, inital module
+- Jerome Loyet, initial module
 - Markus Linnala, httponly/secure-cookies-patch
 - Peter Bowey, Nginx 1.5.8 API-Change 
+- Michael Chernyak for Max-Age-Patch 
 - anybody who suggested a patch, created an issue on bitbucket or helped improving this module 
 
 
@@ -132,7 +139,6 @@ see Todo.md
     This module is licenced under the BSD license.
   
     Copyright (C) 2010 Jerome Loyet (jerome at loyet dot net)
-    Copyright (C) 2012 Markus Linnala (markus.linnala@gmail.com)
     Copyright (C) 2014 Markus Manzke (goodman at nginx-goodies dot com)
 
   
