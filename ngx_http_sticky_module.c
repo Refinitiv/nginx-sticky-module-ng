@@ -268,8 +268,8 @@ static ngx_int_t ngx_http_get_sticky_peer(ngx_peer_connection_t *pc, void *data)
 	ngx_http_sticky_srv_conf_t   *conf = iphp->sticky_conf;
 	ngx_int_t                     selected_peer = -1;
 	time_t                        now = ngx_time();
-	uintptr_t                     m;
-	ngx_uint_t                    n, i;
+	uintptr_t                     m = 0;
+	ngx_uint_t                    n = 0, i;
 	ngx_http_upstream_rr_peer_t  *peer = NULL;
 
 	ngx_log_debug(NGX_LOG_DEBUG_HTTP, pc->log, 0, "[sticky/get_sticky_peer] get sticky peer, try: %ui, n_peers: %ui, no_fallback: %ui/%ui", pc->tries, iphp->rrp.peers->number, conf->no_fallback, iphp->no_fallback);
