@@ -162,15 +162,15 @@ ngx_int_t ngx_http_init_upstream_sticky(ngx_conf_t *cf, ngx_http_upstream_srv_co
 
 		if (conf->hmac) {
 			/* generate hmac */
-			conf->hmac(cf->pool, rr_peers->peer[i].sockaddr, rr_peers->peer[i].socklen, &conf->hmac_key, &conf->peers[i].digest);
+			conf->hmac(cf->pool, rr_peers->peer[i].server.data, rr_peers->peer[i].server.len, &conf->hmac_key, &conf->peers[i].digest);
 
 		} else if (conf->text) {
 			/* generate text */
-			conf->text(cf->pool, rr_peers->peer[i].sockaddr, &conf->peers[i].digest);
+			conf->text(cf->pool, rr_peers->peer[i].server.data, rr_peers->peer[i].server.len, &conf->peers[i].digest);
 
 		} else {
 			/* generate hash */
-			conf->hash(cf->pool, rr_peers->peer[i].sockaddr, rr_peers->peer[i].socklen, &conf->peers[i].digest);
+			conf->hash(cf->pool, rr_peers->peer[i].server.data, rr_peers->peer[i].server.len, &conf->peers[i].digest);
 		}
 
 #if 0
