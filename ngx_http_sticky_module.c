@@ -506,7 +506,7 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
 			/* only hash or hmac can be used, not both */
 			if (hmac || hash != NGX_CONF_UNSET_PTR) {
-				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "please choose between \"hash=\", \"hmac=\" and \"text\"");
+				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "please choose between \"hash=\", \"hmac=\" and \"text=\"");
 				return NGX_CONF_ERROR;
 			}
 
@@ -526,19 +526,7 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 				continue;
 			}
 
-			/* is name=md5 */
-			if (ngx_strncmp(tmp.data, "md5", sizeof("md5") - 1) == 0 ) {
-				text = ngx_http_sticky_misc_text_md5;
-				continue;
-			}
-
-			/* is name=sha1 */
-			if (ngx_strncmp(tmp.data, "sha1", sizeof("sha1") - 1) == 0 ) {
-				text = ngx_http_sticky_misc_text_sha1;
-				continue;
-			}
-
-			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "wrong value for \"text=\": raw, md5 or sha1");
+			ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "wrong value for \"text=\": raw");
 			return NGX_CONF_ERROR;
 		}
 

@@ -329,34 +329,3 @@ ngx_int_t ngx_http_sticky_misc_text_raw(ngx_pool_t *pool, struct sockaddr *in, n
   return NGX_OK;
 
 }
-
-ngx_int_t ngx_http_sticky_misc_text_md5(ngx_pool_t *pool, struct sockaddr *in, ngx_str_t *digest)
-{
-  ngx_str_t str;
-  if (ngx_http_sticky_misc_text_raw(pool, in, &str) != NGX_OK) {
-    return NGX_ERROR;
-  }
-
-  if (ngx_http_sticky_misc_md5(pool, (void *)str.data, str.len, digest) != NGX_OK) {
-    ngx_pfree(pool, &str);
-    return NGX_ERROR;
-  }
-
-  return ngx_pfree(pool, &str);
-}
-
-ngx_int_t ngx_http_sticky_misc_text_sha1(ngx_pool_t *pool, struct sockaddr *in, ngx_str_t *digest)
-{
-  ngx_str_t str;
-  if (ngx_http_sticky_misc_text_raw(pool, in, &str) != NGX_OK) {
-    return NGX_ERROR;
-  }
-
-  if (ngx_http_sticky_misc_sha1(pool, (void *)str.data, str.len, digest) != NGX_OK) {
-    ngx_pfree(pool, &str);
-    return NGX_ERROR;
-  }
-
-  return ngx_pfree(pool, &str);
-}
-

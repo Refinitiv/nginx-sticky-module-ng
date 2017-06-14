@@ -21,8 +21,6 @@ ngx_int_t ngx_http_sticky_misc_sha1(ngx_pool_t *pool, void *in, size_t len, ngx_
 ngx_int_t ngx_http_sticky_misc_hmac_md5(ngx_pool_t *pool, void *in, size_t len, ngx_str_t *key, ngx_str_t *digest);
 ngx_int_t ngx_http_sticky_misc_hmac_sha1(ngx_pool_t *pool, void *in, size_t len, ngx_str_t *key, ngx_str_t *digest);
 
-ngx_int_t ngx_http_sticky_misc_text_raw(ngx_pool_t *pool, struct sockaddr *in, ngx_str_t *digest);
-ngx_int_t ngx_http_sticky_misc_text_md5(ngx_pool_t *pool, struct sockaddr *in, ngx_str_t *digest);
 ngx_int_t ngx_http_sticky_misc_text_sha1(ngx_pool_t *pool, struct sockaddr *in, ngx_str_t *digest);
 
 #endif /* _NGX_HTTP_STICKY_MISC_H_INCLUDED_ */
