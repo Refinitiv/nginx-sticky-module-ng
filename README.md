@@ -92,6 +92,14 @@ Modify your compile of Nginx by adding the following directive
 - httponly  enable cookies not to be leaked via js
 
 
+You can set `sticky_no_fallback` in a server or location block (see no_fallback).
+
+    location /check {
+      sticky_no_fallback;
+      proxypass http://foobar;
+    }
+
+
 # Detail Mechanism
 
 - see docs/sticky.{vsd,pdf}	
