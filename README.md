@@ -56,45 +56,53 @@ Modify your compile of Nginx by adding the following directive
 	  sticky [text=raw] [no_fallback]
            [name=route] [domain=.foo.bar] [path=/] [expires=1h] [secure] [httponly];
 
-Server selection algorithm:
-- hash:    the hash mechanism to encode upstream server. It can't be used with hmac or text.
-  default: md5
+*Server selection algorithm:*
 
-    - md5|sha1: well known hash
-    - index:    it's not hashed, an in-memory index is used instead, it's quicker and the overhead is shorter
+You have to select between `hash=`, `hmac=` and `text=`. See options below:
+
+- `hash`:    the hash mechanism to encode upstream server..
+  default: `md5`
+
+    - `md5`|`sha1`: digest algorithms
+    - `index`:    it's not hashed, an in-memory index is used instead, it's quicker and the overhead is shorter
     Warning: the matching against upstream servers list
     is inconsistent. So, at reload, if upstreams servers
     has changed, index values are not guaranted to
     correspond to the same server as before!
-    USE IT WITH CAUTION and only if you need to!
+    USE IT WITH CAUTION !
 
-- hmac:    the HMAC hash mechanism to encode upstream server
-    It's like the hash mechanism but it uses hmac_key
-    to secure the hashing. It can't be used with hash or text.
-    md5|sha1: well known hash
+- `hmac`:    the HMAC hash mechanism to encode upstream server
+    It's like the `hash` mechanism but it uses `hmac_key`
+    to secure the hashing. It can't be used with `hash` or `text`.
+    
+    - md5|sha1: digest algorithms
 
-- hmac_key: the key to use with hmac. It's mandatory when hmac is set
+- `text`:  uses no hash, but a text value.
 
-- no_fallback: when this flag is set, nginx will return a 502 (Bad Gateway or
+    - raw:  uses the raw value of server.
+
+- `hmac_key`: the key to use with `hmac`. It's mandatory when `hmac` is set
+
+- `no_fallback`: when this flag is set, nginx will return a 502 (Bad Gateway or
               Proxy Error) if a request comes with a cookie and the
               corresponding backend is unavailable.
 
-Cookie settings:
-- name:    the name of the cookie used to track the persistant upstream srv;
+*Cookie settings:*
+- `name`:    the name of the cookie used to track the persistant upstream srv;
   default: route
 
-- domain:  the domain in which the cookie will be valid
+- `domain`:  the domain in which the cookie will be valid
   default: none. Let the browser handle this.
 
-- path:    the path in which the cookie will be valid
+- `path`:    the path in which the cookie will be valid
   default: /
 
-- expires: the validity duration of the cookie
+- `expires`: the validity duration of the cookie
   default: nothing. It's a session cookie.
   restriction: must be a duration greater than one second
 
-- secure    enable secure cookies; transferred only via https
-- httponly  enable cookies not to be leaked via js
+- `secure`    enable secure cookies; transferred only via https
+- `httponly`  enable cookies not to be leaked via js
 
 
 # Detail Mechanism
