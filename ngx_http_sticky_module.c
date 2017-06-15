@@ -39,20 +39,14 @@ typedef struct {
 } ngx_http_sticky_srv_conf_t;
 
 
-/* the configuration loc structure */
-typedef struct {
-	ngx_uint_t                    no_fallback;
-} ngx_http_sticky_loc_conf_t;
-
-
 /* the custom sticky struct used on each request */
 typedef struct {
 	/* the round robin data must be first */
 	ngx_http_upstream_rr_peer_data_t   rrp;
 	ngx_event_get_peer_pt              get_rr_peer;
 	int                                selected_peer;
+	int                                no_fallback;
 	ngx_http_sticky_srv_conf_t        *sticky_conf;
-	ngx_http_sticky_loc_conf_t        *loc_conf;
 	ngx_http_request_t                *request;
 } ngx_http_sticky_peer_data_t;
 
@@ -61,9 +55,7 @@ static ngx_int_t ngx_http_init_sticky_peer(ngx_http_request_t *r,	ngx_http_upstr
 static ngx_int_t ngx_http_get_sticky_peer(ngx_peer_connection_t *pc, void *data);
 static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
 static void *ngx_http_sticky_create_conf(ngx_conf_t *cf);
-static char *ngx_http_sticky_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
-static void *ngx_http_sticky_create_loc_conf(ngx_conf_t *cf);
-static char *ngx_conf_set_noargs_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
+
 
 static ngx_command_t  ngx_http_sticky_commands[] = {
 
@@ -71,13 +63,6 @@ static ngx_command_t  ngx_http_sticky_commands[] = {
 		NGX_HTTP_UPS_CONF|NGX_CONF_ANY,
 		ngx_http_sticky_set,
 		0,
-		0,
-		NULL },
-
-	{ ngx_string("sticky_no_fallback"),
-		NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_NOARGS,
-		ngx_conf_set_noargs_slot,
-		NGX_HTTP_LOC_CONF_OFFSET,
 		0,
 		NULL },
 
@@ -95,8 +80,8 @@ static ngx_http_module_t  ngx_http_sticky_module_ctx = {
 	ngx_http_sticky_create_conf,           /* create server configuration */
 	NULL,                                  /* merge server configuration */
 
-	ngx_http_sticky_create_loc_conf,       /* create location configuration */
-	ngx_http_sticky_merge_loc_conf         /* merge location configuration */
+	NULL,                                  /* create location configuration */
+	NULL                                   /* merge location configuration */
 };
 
 
@@ -214,8 +199,8 @@ static ngx_int_t ngx_http_init_sticky_peer(ngx_http_request_t *r, ngx_http_upstr
 	/* init the custom sticky struct */
 	iphp->get_rr_peer = ngx_http_upstream_get_round_robin_peer;
 	iphp->selected_peer = -1;
+	iphp->no_fallback = 0;
 	iphp->sticky_conf = ngx_http_conf_upstream_srv_conf(us, ngx_http_sticky_module);
-	iphp->loc_conf = ngx_http_get_module_loc_conf(r, ngx_http_sticky_module);
 	iphp->request = r;
 
 	/* check weather a cookie is present or not and save it */
@@ -281,14 +266,13 @@ static ngx_int_t ngx_http_get_sticky_peer(ngx_peer_connection_t *pc, void *data)
 {
 	ngx_http_sticky_peer_data_t  *iphp = data;
 	ngx_http_sticky_srv_conf_t   *conf = iphp->sticky_conf;
-	ngx_http_sticky_loc_conf_t   *loc_conf = iphp->loc_conf;
 	ngx_int_t                     selected_peer = -1;
 	time_t                        now = ngx_time();
 	uintptr_t                     m = 0;
 	ngx_uint_t                    n = 0, i;
 	ngx_http_upstream_rr_peer_t  *peer = NULL;
 
-	ngx_log_debug(NGX_LOG_DEBUG_HTTP, pc->log, 0, "[sticky/get_sticky_peer] get sticky peer, try: %ui, n_peers: %ui, no_fallback: %ui/%ui", pc->tries, iphp->rrp.peers->number, conf->no_fallback, loc_conf->no_fallback);
+	ngx_log_debug(NGX_LOG_DEBUG_HTTP, pc->log, 0, "[sticky/get_sticky_peer] get sticky peer, try: %ui, n_peers: %ui, no_fallback: %ui/%ui", pc->tries, iphp->rrp.peers->number, conf->no_fallback, iphp->no_fallback);
 
 	/* TODO: cached */
 
@@ -305,7 +289,9 @@ static ngx_int_t ngx_http_get_sticky_peer(ngx_peer_connection_t *pc, void *data)
 			peer = &iphp->rrp.peers->peer[iphp->selected_peer];
 
 			/* if the no_fallback flag is set */
-			if (conf->no_fallback || loc_conf->no_fallback) {
+			if (conf->no_fallback) {
+
+				iphp->no_fallback = 1;
 
 				/* if peer is down */
 				if (peer->down) {
@@ -368,7 +354,7 @@ static ngx_int_t ngx_http_get_sticky_peer(ngx_peer_connection_t *pc, void *data)
 	} else {
 		ngx_log_debug(NGX_LOG_DEBUG_HTTP, pc->log, 0, "[sticky/get_sticky_peer] no sticky peer selected, switch back to classic rr");
 
-		if (iphp->sticky_conf->no_fallback || iphp->loc_conf->no_fallback) {
+		if (iphp->no_fallback) {
 			ngx_log_error(NGX_LOG_NOTICE, pc->log, 0, "[sticky/get_sticky_peer] No fallback in action !");
 			return NGX_BUSY;
 		}
@@ -728,54 +714,4 @@ static void *ngx_http_sticky_create_conf(ngx_conf_t *cf)
 	}
 
 	return conf;
-}
-
-static void *ngx_http_sticky_create_loc_conf(ngx_conf_t *cf)
-{
-	ngx_http_sticky_loc_conf_t  *conf;
-
-	conf = ngx_pcalloc(cf->pool, sizeof(*conf));
-	if (conf == NULL) {
-		return NGX_CONF_ERROR;
-	}
-	conf->no_fallback = NGX_CONF_UNSET_UINT;
-	return conf;
-}
-
-static char *ngx_http_sticky_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
-{
-	ngx_http_sticky_loc_conf_t *prev = parent;
-	ngx_http_sticky_loc_conf_t *conf = child;
-
-	ngx_conf_merge_uint_value(conf->no_fallback, prev->no_fallback, 0);
-
-	if (conf->no_fallback > 1) {
-		ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
-		    "no_fallback must be equal either to 0 or 1");
-		return NGX_CONF_ERROR;
-	}
-	return NGX_CONF_OK;
-}
-
-static char *ngx_conf_set_noargs_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
-{
-    char  *p = conf;
-
-    ngx_uint_t       *fp;
-    ngx_conf_post_t  *post;
-
-    fp = (ngx_uint_t *) (p + cmd->offset);
-
-    if (*fp != NGX_CONF_UNSET) {
-        return "is duplicate";
-    }
-
-    *fp = 1;
-
-    if (cmd->post) {
-        post = cmd->post;
-        return post->post_handler(cf, post, fp);
-    }
-
-    return NGX_CONF_OK;
 }
