@@ -285,78 +285,18 @@ ngx_int_t ngx_http_sticky_misc_hmac_sha1(ngx_pool_t *pool, void *in, size_t len,
   return NGX_OK;
 }
 
-ngx_int_t ngx_http_sticky_misc_text_raw(ngx_pool_t *pool, struct sockaddr *in, ngx_str_t *digest)
+ngx_int_t ngx_http_sticky_misc_text_raw(ngx_pool_t *pool, void *in, size_t len, ngx_str_t *digest)
 {
-  size_t len;
   if (!in) {
     return NGX_ERROR;
   }
-
-  switch (in->sa_family) {
-    case AF_INET:
-      len = NGX_INET_ADDRSTRLEN + sizeof(":65535") - 1;
-      break;
-
-#if (NGX_HAVE_INET6)
-    case AF_INET6:
-      len = NGX_INET6_ADDRSTRLEN + sizeof(":65535") - 1;
-      break;
-#endif
-
-#if (NGX_HAVE_UNIX_DOMAIN)
-    case AF_UNIX:
-      len = sizeof("unix:") - 1 + NGX_UNIX_ADDRSTRLEN;
-      break;
-#endif
-
-    default:
-      return NGX_ERROR;
-  }
-
 
   digest->data = ngx_pnalloc(pool, len);
   if (digest->data == NULL) {
     return NGX_ERROR;
   }
-
-  /* https://bitbucket.org/nginx-goodies/nginx-sticky-module-ng/issue/1/nginx-158-api-change-for-ngx_sock_ntop */
-#if defined(nginx_version) && nginx_version >= 1005003
-    digest->len = ngx_sock_ntop(in, sizeof(struct sockaddr_in), digest->data, len, 1);
-#else
-    digest->len = ngx_sock_ntop(in, digest->data, len, 1);
-#endif
+  memcpy(digest->data, in, len);
+  digest->len = len;
 
   return NGX_OK;
-
 }
-
-ngx_int_t ngx_http_sticky_misc_text_md5(ngx_pool_t *pool, struct sockaddr *in, ngx_str_t *digest)
-{
-  ngx_str_t str;
-  if (ngx_http_sticky_misc_text_raw(pool, in, &str) != NGX_OK) {
-    return NGX_ERROR;
-  }
-
-  if (ngx_http_sticky_misc_md5(pool, (void *)str.data, str.len, digest) != NGX_OK) {
-    ngx_pfree(pool, &str);
-    return NGX_ERROR;
-  }
-
-  return ngx_pfree(pool, &str);
-}
-
-ngx_int_t ngx_http_sticky_misc_text_sha1(ngx_pool_t *pool, struct sockaddr *in, ngx_str_t *digest)
-{
-  ngx_str_t str;
-  if (ngx_http_sticky_misc_text_raw(pool, in, &str) != NGX_OK) {
-    return NGX_ERROR;
-  }
-
-  if (ngx_http_sticky_misc_sha1(pool, (void *)str.data, str.len, digest) != NGX_OK) {
-    ngx_pfree(pool, &str);
-    return NGX_ERROR;
-  }
-
-  return ngx_pfree(pool, &str);
-}
-
