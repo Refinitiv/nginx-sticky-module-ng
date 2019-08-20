@@ -4,3 +4,4 @@ NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_sticky_module.c $ngx_add
 NGX_ADDON_DEPS="$NGX_ADDON_DEPS $ngx_addon_dir/ngx_http_sticky_misc.h"
 USE_MD5=YES
 USE_SHA1=YES
+. auto/module
