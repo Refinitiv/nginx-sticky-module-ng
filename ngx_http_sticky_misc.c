@@ -21,6 +21,11 @@
 #define MD5_LBLOCK  (MD5_CBLOCK/4)
 #define MD5_DIGEST_LENGTH 16
 
+#ifndef SHA_DIGEST_LENGTH
+#define SHA_CBLOCK 64
+#define SHA_DIGEST_LENGTH 20
+#endif
+
 // /* - bugfix for compiling on sles11 - needs gcc4.6 or later*/
 // #pragma GCC diagnostic ignored "-Wuninitialized"
 
@@ -39,10 +44,8 @@ ngx_int_t ngx_http_sticky_misc_set_cookie(ngx_http_request_t *r, ngx_str_t *name
 {
   u_char  *cookie, *p;
   size_t  len;
-  ngx_table_elt_t *set_cookie, *elt;
+  ngx_table_elt_t *set_cookie;
   ngx_str_t remove;
-  ngx_list_part_t *part;
-  ngx_uint_t i;
   char expires_str[80];
 
   int expires_len = 0;
@@ -110,33 +113,6 @@ ngx_int_t ngx_http_sticky_misc_set_cookie(ngx_http_request_t *r, ngx_str_t *name
 
   if (httponly) {
     p = ngx_copy(p, "; HttpOnly", sizeof("; HttpOnly") - 1);
-  }
-
-  part = &r->headers_out.headers.part;
-  elt = part->elts;
-  set_cookie = NULL;
-
-  for (i=0 ;; i++) {
-    if (part->nelts > 1 || i >= part->nelts) {
-      if (part->next == NULL) {
-        break;
-      }
-      part = part->next;
-      elt = part->elts;
-      i = 0;
-    }
-    /* ... */
-    if (ngx_strncmp(elt->value.data, name->data, name->len) == 0) {
-      set_cookie = elt;
-      break;
-    }
-  }
-
-  /* found a Set-Cookie header with the same name: replace it */
-  if (set_cookie != NULL) {
-    set_cookie->value.len = p - cookie;
-    set_cookie->value.data = cookie;
-    return NGX_OK;
   }
 
   set_cookie = ngx_list_push(&r->headers_out.headers);

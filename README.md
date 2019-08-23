@@ -47,52 +47,72 @@ Modify your compile of Nginx by adding the following directive
       server 127.0.0.1:9002;
     }
 
-	  sticky [hash=index|md5|sha1] [no_fallback]
+	  sticky [hash=index|md5|sha1] [no_fallback] [transfer] [delimiter=.]
            [name=route] [domain=.foo.bar] [path=/] [expires=1h] [secure] [httponly];
        or
-	  sticky [hmac=md5|sha1 hmac_key=<foobar_key>] [no_fallback]
+	  sticky [hmac=md5|sha1 hmac_key=<foobar_key>] [no_fallback] [transfer] [delimiter=.]
            [name=route] [domain=.foo.bar] [path=/] [expires=1h] [secure] [httponly];
        or
-	  sticky [text=raw] [no_fallback]
+	  sticky [text=raw] [no_fallback] [transfer] [delimiter=.]
            [name=route] [domain=.foo.bar] [path=/] [expires=1h] [secure] [httponly];
 
 Server selection algorithm:
-- hash:    the hash mechanism to encode upstream server. It can't be used with hmac or text.
+- hash: the hash mechanism to encode upstream server. It can't be used with hmac or text.  
   default: md5
 
-    - md5|sha1: well known hash
-    - index:    it's not hashed, an in-memory index is used instead, it's quicker and the overhead is shorter
+  - md5|sha1: well known hash
+  - index: it's not hashed, an in-memory index is used instead, it's quicker and the overhead is shorter  
     Warning: the matching against upstream servers list
     is inconsistent. So, at reload, if upstreams servers
     has changed, index values are not guaranted to
-    correspond to the same server as before!
+    correspond to the same server as before!  
     USE IT WITH CAUTION and only if you need to!
 
-- hmac:    the HMAC hash mechanism to encode upstream server
-    It's like the hash mechanism but it uses hmac_key
-    to secure the hashing. It can't be used with hash or text.
-    md5|sha1: well known hash
+- hmac: the HMAC hash mechanism to encode upstream server  
+  It's like the hash mechanism but it uses hmac_key
+  to secure the hashing. It can't be used with hash or text.  
+  md5|sha1: well known hash
 
 - hmac_key: the key to use with hmac. It's mandatory when hmac is set
 
 - no_fallback: when this flag is set, nginx will return a 502 (Bad Gateway or
-              Proxy Error) if a request comes with a cookie and the
-              corresponding backend is unavailable. You can set it to the
-              upstream block, or set "sticky_no_fallback" in a server or
-              location block.
+  Proxy Error) if a request comes with a cookie and the
+  corresponding backend is unavailable. You can set it to the
+  upstream block, or set "sticky_no_fallback" in a server or
+  location block.
+
+- transfer: when this flag is set, nginx adds a cookie from the backend to the sticky cookie  
+  default: space
+
+  Example for remove peer part from cookie before sand it to backend:
+  ```
+    server {
+      # ...
+      set $jsessionid $cookie_JSESSIONID;
+      if ($cookie_JSESSIONID ~ "^[^\s]+\s(.*)$") {
+        set $jsessionid $1;
+      }
+      location / {
+        proxy_set_header Cookie "JSESSIONID=$jsessionid";
+        proxy_pass http://backend;
+      }
+    }
+  ```
+
+- delimiter: delimiter to add a cookie from the backend  
 
 Cookie settings:
-- name:    the name of the cookie used to track the persistant upstream srv;
+- name:    the name of the cookie used to track the persistant upstream srv;  
   default: route
 
-- domain:  the domain in which the cookie will be valid
+- domain:  the domain in which the cookie will be valid  
   default: none. Let the browser handle this.
 
-- path:    the path in which the cookie will be valid
+- path:    the path in which the cookie will be valid  
   default: /
 
-- expires: the validity duration of the cookie
-  default: nothing. It's a session cookie.
+- expires: the validity duration of the cookie  
+  default: nothing. It's a session cookie.  
   restriction: must be a duration greater than one second
 
 - secure    enable secure cookies; transferred only via https
@@ -112,7 +132,7 @@ Cookie settings:
 
 - sticky module does not work with the "backup" option of the "server" configuration item.
 - sticky module might work with the nginx_http_upstream_check_module (up from version 1.2.3)
-  
+- sticky module does not modify cookie from a client to the backend if "transfer" flag is set.
 
 
 # Contributing
