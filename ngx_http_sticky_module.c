@@ -225,6 +225,8 @@ static ngx_int_t ngx_http_init_sticky_peer(ngx_http_request_t *r, ngx_http_upstr
 	iphp->sticky_conf = ngx_http_conf_upstream_srv_conf(us, ngx_http_sticky_module);
 	iphp->loc_conf = ngx_http_get_module_loc_conf(r, ngx_http_sticky_module);
 	iphp->request = r;
+	iphp->cookie_route.data = NULL;
+	iphp->cookie_route.len = 0;
 
 	ngx_http_set_ctx(r, iphp, ngx_http_sticky_module);
 
@@ -456,7 +458,7 @@ static ngx_int_t ngx_http_sticky_header_filter(ngx_http_request_t *r)
 	size_t len;
 
 	ctx = ngx_http_get_module_ctx(r, ngx_http_sticky_module);
-	if (ctx == NULL) {
+	if (ctx == NULL || ctx->cookie_route.data == NULL) {
 		return ngx_http_next_header_filter(r);
 	}
 
