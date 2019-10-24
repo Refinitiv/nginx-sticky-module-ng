@@ -37,6 +37,7 @@ typedef struct {
 	ngx_http_sticky_misc_hmac_pt  hmac;
 	ngx_http_sticky_misc_text_pt  text;
 	ngx_uint_t                    no_fallback;
+	ngx_uint_t                    hide_cookie;
 	ngx_http_sticky_peer_t       *peers;
 } ngx_http_sticky_srv_conf_t;
 
@@ -44,6 +45,7 @@ typedef struct {
 /* the configuration loc structure */
 typedef struct {
 	ngx_uint_t                    no_fallback;
+	ngx_uint_t                    hide_cookie;
 } ngx_http_sticky_loc_conf_t;
 
 
@@ -84,6 +86,13 @@ static ngx_command_t  ngx_http_sticky_commands[] = {
 		ngx_conf_set_noargs_slot,
 		NGX_HTTP_LOC_CONF_OFFSET,
 		0,
+		NULL },
+
+	{ ngx_string("sticky_hide_cookie"),
+		NGX_HTTP_SRV_CONF|NGX_HTTP_LOC_CONF|NGX_CONF_NOARGS,
+		ngx_conf_set_noargs_slot,
+		NGX_HTTP_LOC_CONF_OFFSET,
+		offsetof(ngx_http_sticky_loc_conf_t, hide_cookie),
 		NULL },
 
 	ngx_null_command
@@ -489,25 +498,27 @@ static ngx_int_t ngx_http_sticky_header_filter(ngx_http_request_t *r)
 		}
 	}
 
-	if (ctx->sticky_conf->transfer_cookie && transfer_cookie.len != 0) {
-		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[sticky/ngx_http_sticky_header_filter] add transfer cookie");
-		len = ctx->cookie_route.len + ctx->sticky_conf->transfer_delim.len + transfer_cookie.len;
-		result_cookie.data = ngx_palloc(r->pool, len);
-		if (result_cookie.data == NULL) {
-			return NGX_ERROR;
+	if (!ctx->sticky_conf->hide_cookie && !ctx->loc_conf->hide_cookie) {
+		if (ctx->sticky_conf->transfer_cookie && transfer_cookie.len != 0) {
+			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[sticky/ngx_http_sticky_header_filter] add transfer cookie");
+			len = ctx->cookie_route.len + ctx->sticky_conf->transfer_delim.len + transfer_cookie.len;
+			result_cookie.data = ngx_palloc(r->pool, len);
+			if (result_cookie.data == NULL) {
+				return NGX_ERROR;
+			}
+			p = ngx_copy(result_cookie.data, ctx->cookie_route.data, ctx->cookie_route.len);
+			p = ngx_copy(p, ctx->sticky_conf->transfer_delim.data, ctx->sticky_conf->transfer_delim.len);
+			(void) ngx_copy(p, transfer_cookie.data, transfer_cookie.len);
+			result_cookie.len = len;
+		} else {
+			result_cookie = ctx->cookie_route;
 		}
-		p = ngx_copy(result_cookie.data, ctx->cookie_route.data, ctx->cookie_route.len);
-		p = ngx_copy(p, ctx->sticky_conf->transfer_delim.data, ctx->sticky_conf->transfer_delim.len);
-		(void) ngx_copy(p, transfer_cookie.data, transfer_cookie.len);
-		result_cookie.len = len;
-	} else {
-		result_cookie = ctx->cookie_route;
-	}
 
-	ngx_http_sticky_misc_set_cookie(r, &ctx->sticky_conf->cookie_name, &result_cookie, &ctx->sticky_conf->cookie_domain,
-		&ctx->sticky_conf->cookie_path, ctx->sticky_conf->cookie_expires, ctx->sticky_conf->cookie_secure, ctx->sticky_conf->cookie_httponly);
-	ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[sticky/ngx_http_sticky_header_filter] set cookie \"%V\" value=\"%V\"",
-		&ctx->sticky_conf->cookie_name, &result_cookie);
+		ngx_http_sticky_misc_set_cookie(r, &ctx->sticky_conf->cookie_name, &result_cookie, &ctx->sticky_conf->cookie_domain,
+			&ctx->sticky_conf->cookie_path, ctx->sticky_conf->cookie_expires, ctx->sticky_conf->cookie_secure, ctx->sticky_conf->cookie_httponly);
+		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[sticky/ngx_http_sticky_header_filter] set cookie \"%V\" value=\"%V\"",
+			&ctx->sticky_conf->cookie_name, &result_cookie);
+	}
 
 	return ngx_http_next_header_filter(r);
 }
@@ -534,6 +545,7 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 	ngx_http_sticky_misc_hmac_pt hmac = NULL;
 	ngx_http_sticky_misc_text_pt text = NULL;
 	ngx_uint_t no_fallback = 0;
+	ngx_uint_t hide_cookie = 0;
 
 	/* parse all elements */
 	for (i = 1; i < cf->args->nelts; i++) {
@@ -766,6 +778,12 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 			continue;
 		}
 
+		/* is "hide_cookie" flag present ? */
+		if (ngx_strncmp(value[i].data, "hide_cookie", sizeof("hide_cookie") - 1) == 0 ) {
+			hide_cookie = 1;
+			continue;
+		}
+
 		ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid arguement (%V)", &value[i]);
 		return NGX_CONF_ERROR;
 	}
@@ -807,6 +825,7 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 	sticky_conf->text = text;
 	sticky_conf->hmac_key = hmac_key;
 	sticky_conf->no_fallback = no_fallback;
+	sticky_conf->hide_cookie = hide_cookie;
 	sticky_conf->peers = NULL; /* ensure it's null before running */
 
 	upstream_conf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_module);
@@ -855,6 +874,7 @@ static void *ngx_http_sticky_create_loc_conf(ngx_conf_t *cf)
 		return NGX_CONF_ERROR;
 	}
 	conf->no_fallback = NGX_CONF_UNSET_UINT;
+	conf->hide_cookie = NGX_CONF_UNSET_UINT;
 	return conf;
 }
 
@@ -864,10 +884,16 @@ static char *ngx_http_sticky_merge_loc_conf(ngx_conf_t *cf, void *parent, void *
 	ngx_http_sticky_loc_conf_t *conf = child;
 
 	ngx_conf_merge_uint_value(conf->no_fallback, prev->no_fallback, 0);
+	ngx_conf_merge_uint_value(conf->hide_cookie, prev->hide_cookie, 0);
 
 	if (conf->no_fallback > 1) {
 		ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
 			"no_fallback must be equal either to 0 or 1");
+		return NGX_CONF_ERROR;
+	}
+	if (conf->hide_cookie > 1) {
+		ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
+			"hide_cookie must be equal either to 0 or 1");
 		return NGX_CONF_ERROR;
 	}
 	return NGX_CONF_OK;

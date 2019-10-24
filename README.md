@@ -57,31 +57,31 @@ Modify your compile of Nginx by adding the following directive
            [name=route] [domain=.foo.bar] [path=/] [expires=1h] [secure] [httponly];
 
 Server selection algorithm:
-- hash: the hash mechanism to encode upstream server. It can't be used with hmac or text.  
-  default: md5
+- `hash`: the hash mechanism to encode upstream server. It can't be used with hmac or text.  
+  default: `md5`
 
-  - md5|sha1: well known hash
-  - index: it's not hashed, an in-memory index is used instead, it's quicker and the overhead is shorter  
+  - `md5`|`sha1`: well known hash
+  - `index`: it's not hashed, an in-memory index is used instead, it's quicker and the overhead is shorter  
     Warning: the matching against upstream servers list
     is inconsistent. So, at reload, if upstreams servers
     has changed, index values are not guaranted to
     correspond to the same server as before!  
     USE IT WITH CAUTION and only if you need to!
 
-- hmac: the HMAC hash mechanism to encode upstream server  
+- `hmac`: the HMAC hash mechanism to encode upstream server  
   It's like the hash mechanism but it uses hmac_key
   to secure the hashing. It can't be used with hash or text.  
-  md5|sha1: well known hash
+  `md5`|`sha1`: well known hash
 
-- hmac_key: the key to use with hmac. It's mandatory when hmac is set
+- `hmac_key`: the key to use with hmac. It's mandatory when hmac is set
 
-- no_fallback: when this flag is set, nginx will return a 502 (Bad Gateway or
+- `no_fallback`: when this flag is set, nginx will return a 502 (Bad Gateway or
   Proxy Error) if a request comes with a cookie and the
   corresponding backend is unavailable. You can set it to the
-  upstream block, or set "sticky_no_fallback" in a server or
+  upstream block, or set `sticky_no_fallback` in a server or
   location block.
 
-- transfer: when this flag is set, nginx adds a cookie from the backend to the sticky cookie  
+- `transfer`: when this flag is set, nginx adds a cookie from the backend to the sticky cookie  
   default: space
 
   Example for remove peer part from cookie before sand it to backend:
@@ -102,22 +102,25 @@ Server selection algorithm:
 - delimiter: delimiter to add a cookie from the backend  
 
 Cookie settings:
-- name:    the name of the cookie used to track the persistant upstream srv;  
-  default: route
+- `name`: the name of the cookie used to track the persistant upstream srv;  
+  default: `route`
 
-- domain:  the domain in which the cookie will be valid  
+- `domain`: the domain in which the cookie will be valid  
   default: none. Let the browser handle this.
 
-- path:    the path in which the cookie will be valid  
-  default: /
+- `path`: the path in which the cookie will be valid  
+  default: `/`
 
-- expires: the validity duration of the cookie  
+- `expires`: the validity duration of the cookie  
   default: nothing. It's a session cookie.  
   restriction: must be a duration greater than one second
 
-- secure    enable secure cookies; transferred only via https
-- httponly  enable cookies not to be leaked via js
-
+- `secure`: enable secure cookies; transferred only via https
+- `httponly`: enable cookies not to be leaked via js
+- `hide_cookie`: does not send cookies to the client side  
+  This is to use cookies exclusively for routing only.  
+  You can set it to the upstream block, or set `sticky_hide_cookie` in a server or
+  location block.
 
 # Detail Mechanism
 
