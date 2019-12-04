@@ -751,7 +751,6 @@ static char *ngx_conf_set_noargs_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *
     fp = (ngx_uint_t *) (p + cmd->offset);
 
     if (*fp != NGX_CONF_UNSET_UINT) {
-//    if (*fp != NGX_CONF_UNSET) {
         return "is duplicate";
     }
 
