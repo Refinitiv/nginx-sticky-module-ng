@@ -1,6 +1,20 @@
 ngx_addon_name=ngx_http_sticky_module
-HTTP_MODULES="$HTTP_MODULES ngx_http_sticky_module"
-NGX_ADDON_SRCS="$NGX_ADDON_SRCS $ngx_addon_dir/ngx_http_sticky_module.c $ngx_addon_dir/ngx_http_sticky_misc.c"
-NGX_ADDON_DEPS="$NGX_ADDON_DEPS $ngx_addon_dir/ngx_http_sticky_misc.h"
+HTTP_STICKY_DEPS="$ngx_addon_dir/ngx_http_sticky_misc.h"
+HTTP_STICKY_SRCS="$ngx_addon_dir/ngx_http_sticky_module.c $ngx_addon_dir/ngx_http_sticky_misc.c"
 USE_MD5=YES
 USE_SHA1=YES
+
+if test -n "$ngx_module_link"; then
+	ngx_module_type=HTTP
+	ngx_module_name=$ngx_addon_name
+	ngx_module_incs=
+	ngx_module_deps="$HTTP_STICKY_DEPS"
+	ngx_module_srcs="$HTTP_STICKY_SRCS"
+	ngx_module_libs=
+
+	. auto/module
+else
+	HTTP_MODULES="$HTTP_MODULES $ngx_addon_name"
+	NGX_ADDON_DEPS="$NGX_ADDON_DEPS $HTTP_STICKY_DEPS"
+	NGX_ADDON_SRCS="$NGX_ADDON_SRCS $HTTP_STICKY_SRCS"
+fi
