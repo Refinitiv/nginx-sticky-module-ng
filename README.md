@@ -48,13 +48,16 @@ Modify your compile of Nginx by adding the following directive
     }
 
 	  sticky [hash=index|md5|sha1] [no_fallback] [transfer] [delimiter=.]
-           [name=route] [domain=.foo.bar] [path=/] [expires=1h] [secure] [httponly];
+           [name=route] [domain=.foo.bar] [path=/] [expires=1h] [secure] [httponly]
+           [balanced balanced_header=Sec-Fetch-Dest balanced_value=document];
        or
 	  sticky [hmac=md5|sha1 hmac_key=<foobar_key>] [no_fallback] [transfer] [delimiter=.]
-           [name=route] [domain=.foo.bar] [path=/] [expires=1h] [secure] [httponly];
+           [name=route] [domain=.foo.bar] [path=/] [expires=1h] [secure] [httponly]
+           [balanced balanced_header=Sec-Fetch-Dest balanced_value=document];
        or
 	  sticky [text=raw] [no_fallback] [transfer] [delimiter=.]
-           [name=route] [domain=.foo.bar] [path=/] [expires=1h] [secure] [httponly];
+           [name=route] [domain=.foo.bar] [path=/] [expires=1h] [secure] [httponly]
+           [balanced balanced_header=Sec-Fetch-Dest balanced_value=document];
 
 Server selection algorithm:
 - `hash`: the hash mechanism to encode upstream server. It can't be used with hmac or text.  
@@ -121,6 +124,10 @@ Cookie settings:
   This is to use cookies exclusively for routing only.  
   You can set it to the upstream block, or set `sticky_hide_cookie` in a server or
   location block.
+
+Balanced mode settings (Suitable for JSF applications):
+- `balanced`: enable balanced mode, thus sessions will be balanced between upstream servers when servers number changes
+- `balanced_header` and `balanced_value`: header name and value which will be used to trigger new sessions to any instance using round robin
 
 # Detail Mechanism
 

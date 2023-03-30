@@ -39,6 +39,9 @@ typedef struct {
 	ngx_uint_t                    no_fallback;
 	ngx_uint_t                    hide_cookie;
 	ngx_http_sticky_peer_t       *peers;
+	ngx_uint_t										balanced;
+	ngx_str_t											balanced_header;
+	ngx_str_t											balanced_value;
 } ngx_http_sticky_srv_conf_t;
 
 
@@ -61,8 +64,7 @@ typedef struct {
 	ngx_str_t                          cookie_route;
 } ngx_http_sticky_peer_data_t;
 
-
-static ngx_int_t ngx_http_init_sticky_peer(ngx_http_request_t *r,	ngx_http_upstream_srv_conf_t *us);
+static ngx_int_t ngx_http_init_sticky_peer(ngx_http_request_t *r, ngx_http_upstream_srv_conf_t *us);
 static ngx_int_t ngx_http_get_sticky_peer(ngx_peer_connection_t *pc, void *data);
 static ngx_int_t ngx_http_sticky_header_filter(ngx_http_request_t *r);
 static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
@@ -70,7 +72,9 @@ static void *ngx_http_sticky_create_conf(ngx_conf_t *cf);
 static char *ngx_http_sticky_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child);
 static void *ngx_http_sticky_create_loc_conf(ngx_conf_t *cf);
 static char *ngx_conf_set_noargs_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *conf);
-static ngx_http_output_header_filter_pt  ngx_http_next_header_filter;
+static ngx_int_t ngx_http_sticky_check_for_header(ngx_http_request_t *r, const char *header_name, const char *header_value);
+static ngx_int_t ngx_http_sticky_should_start_new_session(ngx_http_request_t *r, ngx_http_sticky_srv_conf_t *conf);
+static ngx_http_output_header_filter_pt ngx_http_next_header_filter;
 
 static ngx_command_t  ngx_http_sticky_commands[] = {
 
@@ -238,6 +242,11 @@ static ngx_int_t ngx_http_init_sticky_peer(ngx_http_request_t *r, ngx_http_upstr
 	iphp->cookie_route.len = 0;
 
 	ngx_http_set_ctx(r, iphp, ngx_http_sticky_module);
+
+	/* if a new session should be started then no need to search for cookie */
+	if (ngx_http_sticky_should_start_new_session(r, iphp->sticky_conf) == NGX_OK) {
+		return NGX_OK;
+	}
 
 	/* check weather a cookie is present or not and save it */
 	if (ngx_http_parse_multi_header_lines(&r->headers_in.cookies, &iphp->sticky_conf->cookie_name, &route) != NGX_DECLINED) {
@@ -545,6 +554,9 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 	ngx_http_sticky_misc_hmac_pt hmac = NULL;
 	ngx_http_sticky_misc_text_pt text = NULL;
 	ngx_uint_t no_fallback = 0;
+	ngx_uint_t balanced = 0;
+	ngx_str_t balanced_header = ngx_null_string;
+	ngx_str_t balanced_value = ngx_null_string;
 	ngx_uint_t hide_cookie = 0;
 
 	/* parse all elements */
@@ -784,6 +796,41 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 			continue;
 		}
 
+		/* is "balanced_header=" is starting the argument ? */
+		if ((u_char *)ngx_strstr(value[i].data, "balanced_header=") == value[i].data) {
+			/* do we have at least one char after "balanced_header=" ? */
+			if (value[i].len <= ngx_strlen("balanced_header=")) {
+				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "a value must be provided to \"balanced_header=\"");
+				return NGX_CONF_ERROR;
+			}
+
+			/* save what's after "hmac_key=" */
+			balanced_header.len = value[i].len - ngx_strlen("balanced_header=");
+			balanced_header.data = (u_char *)(value[i].data + sizeof("balanced_header=") - 1);
+			continue;
+		}
+		
+		/* is "balanced_value=" is starting the argument ? */
+		if ((u_char *)ngx_strstr(value[i].data, "balanced_value=") == value[i].data) {
+			
+			/* do we have at least one char after "balanced_value=" ? */
+			if (value[i].len <= ngx_strlen("balanced_value=")) {
+				ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "a value must be provided to \"balanced_value=\"");
+				return NGX_CONF_ERROR;
+			}
+
+			/* save what's after "hmac_key=" */
+			balanced_value.len = value[i].len - ngx_strlen("balanced_value=");
+			balanced_value.data = (u_char *)(value[i].data + sizeof("balanced_value=") - 1);
+			continue;
+		}
+
+		/* is "balanced" flag present ? */
+		if (ngx_strncmp(value[i].data, "balanced", sizeof("balanced") - 1) == 0) {
+			balanced = 1;
+			continue;
+		}
+
 		ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "invalid arguement (%V)", &value[i]);
 		return NGX_CONF_ERROR;
 	}
@@ -802,6 +849,18 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 	/* ensure we have an hmac key if hmac's been set */
 	if (hmac_key.len == 0 && hmac != NULL) {
 		ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "please specify \"hmac_key=\" when using \"hmac\"");
+		return NGX_CONF_ERROR;
+	}
+
+	/* ensure we have balanced_header and balanced_value if balanced mode has been enabled */
+	if (balanced == 1 && (balanced_header.len == 0 || balanced_value.len == 0)) {
+		ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "please specify \"balanced_header=\" and \"balanced_value=\" when using \"balanced\" mode");
+		return NGX_CONF_ERROR;
+	}
+
+	/* don't allow meaning less parameters */
+	if (balanced == 0 && (balanced_header.len != 0 || balanced_value.len != 0)) {
+		ngx_conf_log_error(NGX_LOG_EMERG, cf, 0, "\"balanced_header=\" and \"balanced_value=\" are meaningless when \"balanced\" mode is not used. Please remove them.");
 		return NGX_CONF_ERROR;
 	}
 
@@ -825,12 +884,15 @@ static char *ngx_http_sticky_set(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 	sticky_conf->text = text;
 	sticky_conf->hmac_key = hmac_key;
 	sticky_conf->no_fallback = no_fallback;
+	sticky_conf->balanced = balanced;
+	sticky_conf->balanced_header = balanced_header;
+	sticky_conf->balanced_value = balanced_value;
 	sticky_conf->hide_cookie = hide_cookie;
 	sticky_conf->peers = NULL; /* ensure it's null before running */
 
 	upstream_conf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_module);
 
-	/* 
+	/*
 	 * ensure another upstream module has not been already loaded
 	 * peer.init_upstream is set to null and the upstream module use RR if not set
 	 * But this check only works when the other module is declared before sticky
@@ -920,4 +982,46 @@ static char *ngx_conf_set_noargs_slot(ngx_conf_t *cf, ngx_command_t *cmd, void *
 	}
 
 	return NGX_CONF_OK;
+}
+
+static ngx_int_t ngx_http_sticky_check_for_header(ngx_http_request_t *r, const char *header_name, const char *header_value)
+{
+	ngx_table_elt_t *header;
+	ngx_list_part_t *part;
+
+	part = &r->headers_in.headers.part;
+	header = part->elts;
+
+	for (size_t i = 0;; i++) {
+		if (i >= part->nelts) {
+			if (part->next == NULL) {
+				break;
+			}
+			part = part->next;
+			header = part->elts;
+			i = 0;
+		}
+		if (strcmp(header[i].key.data, header_name) == 0 && strcmp(header[i].value.data, header_value) == 0) {
+			ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[sticky/check_for_header] Header %s found with value %s.", header[i].key.data, header[i].value.data);
+			return NGX_OK;
+		}
+	}
+
+	return NGX_DECLINED;
+}
+
+static ngx_int_t ngx_http_sticky_should_start_new_session(ngx_http_request_t *r, ngx_http_sticky_srv_conf_t *conf)
+{
+	if (conf->balanced != 1 || conf->balanced_header.len == 0 || conf->balanced_value.len == 0) {
+		return NGX_DECLINED;
+	}
+
+	if (ngx_http_sticky_check_for_header(r, conf->balanced_header.data, conf->balanced_value.data) == NGX_OK) {
+		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[sticky/should_start_new_session] New session will be started.");
+		return NGX_OK;
+	}
+	else {
+		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[sticky/should_start_new_session] Continuing previous session.");
+		return NGX_DECLINED;
+	}
 }
