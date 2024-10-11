@@ -31,6 +31,17 @@
 // /* - bugfix for compiling on sles11 - needs gcc4.6 or later*/
 // #pragma GCC diagnostic ignored "-Wuninitialized"
 
+#ifdef _WIN32
+static ngx_int_t cookie_expires(char *str, size_t size, time_t t)
+{
+    char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
+    char *wdays[] = {"Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"};
+    struct tm e;
+    gmtime_s(&e, &t);
+    return snprintf(str, size, "%s, %02d-%s-%04d %02d:%02d:%02d GMT",
+        wdays[e.tm_wday], e.tm_mday, months[e.tm_mon], e.tm_year + 1900, e.tm_hour, e.tm_min, e.tm_sec);
+}
+#else
 static ngx_int_t cookie_expires(char *str, size_t size, time_t t)
 {
   char *months[] = {"Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"};
@@ -40,7 +51,7 @@ static ngx_int_t cookie_expires(char *str, size_t size, time_t t)
   return snprintf(str, size, "%s, %02d-%s-%04d %02d:%02d:%02d GMT",
     wdays[e.tm_wday], e.tm_mday, months[e.tm_mon], e.tm_year + 1900, e.tm_hour,e.tm_min,e.tm_sec);
 }
-
+#endif
 
 ngx_int_t ngx_http_sticky_misc_set_cookie(ngx_http_request_t *r, ngx_str_t *name, ngx_str_t *value, ngx_str_t *domain, ngx_str_t *path, time_t expires, unsigned secure, unsigned httponly)
 {
