@@ -38,6 +38,14 @@ Modify your compile of Nginx by adding the following directive
     make
     make install
 
+nginx 1.29.6 and later ship their own `sticky` directive. Build nginx without it,
+otherwise `configure` stops with an error:
+
+    # nginx 1.31.0+
+    ./configure ... --without-http_upstream_sticky_module --add-module=/absolute/path/to/nginx-sticky-module-ng
+    # nginx 1.29.6 to 1.30.x
+    ./configure ... --without-http_upstream_sticky --add-module=/absolute/path/to/nginx-sticky-module-ng
+
 # Usage
 
     upstream {

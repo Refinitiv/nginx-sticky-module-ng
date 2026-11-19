@@ -16,15 +16,21 @@
   #define ngx_str_set(str, text) (str)->len = sizeof(text) - 1; (str)->data = (u_char *) text
 #endif
 
-/* - fix for 1.11.2 removes include <openssl/md5.h> in ngx_md5.h */
+/* - fix for 1.11.2 removes include <openssl/md5.h> in ngx_md5.h.
+ * Guard each define so we don't clash if OpenSSL headers are present. */
+#ifndef MD5_CBLOCK
 #define MD5_CBLOCK  64
+#endif
+#ifndef MD5_LBLOCK
 #define MD5_LBLOCK  (MD5_CBLOCK/4)
+#endif
+#ifndef MD5_DIGEST_LENGTH
 #define MD5_DIGEST_LENGTH 16
+#endif
+#ifndef SHA_CBLOCK
 #define SHA_CBLOCK 64
-#define SHA_DIGEST_LENGTH 20
-
+#endif
 #ifndef SHA_DIGEST_LENGTH
-#define SHA_CBLOCK 64
 #define SHA_DIGEST_LENGTH 20
 #endif
 
@@ -122,6 +128,9 @@ ngx_int_t ngx_http_sticky_misc_set_cookie(ngx_http_request_t *r, ngx_str_t *name
     return NGX_ERROR;
   }
   set_cookie->hash = 1;
+#if defined(nginx_version) && nginx_version >= 1023000
+  set_cookie->next = NULL;
+#endif
   ngx_str_set(&set_cookie->key, "Set-Cookie");
   set_cookie->value.len = p - cookie;
   set_cookie->value.data = cookie;
