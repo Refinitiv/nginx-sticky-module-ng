@@ -240,7 +240,17 @@ static ngx_int_t ngx_http_init_sticky_peer(ngx_http_request_t *r, ngx_http_upstr
 	ngx_http_set_ctx(r, iphp, ngx_http_sticky_module);
 
 	/* check weather a cookie is present or not and save it */
+#if defined(nginx_version) && nginx_version >= 1029006
+	/* since nginx 1.29.6 ngx_http_parse_multi_header_lines() splits on "," only,
+	 * cookies are separated by ";" and parsed by ngx_http_parse_cookie_lines() */
+	if (ngx_http_parse_cookie_lines(r, r->headers_in.cookie, &iphp->sticky_conf->cookie_name, &route) != NULL) {
+#elif defined(nginx_version) && nginx_version >= 1023000
+	/* since nginx 1.23.0 cookies are stored as a linked list of ngx_table_elt_t
+	 * and ngx_http_parse_multi_header_lines() returns the matching header (or NULL) */
+	if (ngx_http_parse_multi_header_lines(r, r->headers_in.cookie, &iphp->sticky_conf->cookie_name, &route) != NULL) {
+#else
 	if (ngx_http_parse_multi_header_lines(&r->headers_in.cookies, &iphp->sticky_conf->cookie_name, &route) != NGX_DECLINED) {
+#endif
 		/* a route cookie has been found. Let's give it a try */
 		ngx_log_debug(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "[sticky/init_sticky_peer] got cookie route=%V, let's try to find a matching peer", &route);
 
@@ -472,7 +482,13 @@ static ngx_int_t ngx_http_sticky_header_filter(ngx_http_request_t *r)
 	}
 
 	if (ctx->sticky_conf->transfer_cookie) {
+#if defined(nginx_version) && nginx_version >= 1023000
+		/* since nginx 1.23.0 upstream Set-Cookie headers are a linked list (set_cookie)
+		 * and ngx_http_parse_set_cookie_lines() returns the matching header (or NULL) */
+		if (ngx_http_parse_set_cookie_lines(r, r->upstream->headers_in.set_cookie, &ctx->sticky_conf->cookie_name, &transfer_cookie) == NULL)
+#else
 		if (ngx_http_parse_set_cookie_lines(&r->upstream->headers_in.cookies, &ctx->sticky_conf->cookie_name, &transfer_cookie) == NGX_DECLINED)
+#endif
 		{
 			ngx_str_null(&transfer_cookie);
 		}

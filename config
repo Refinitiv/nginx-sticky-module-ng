@@ -1,4 +1,18 @@
 ngx_addon_name=ngx_http_sticky_module
+
+# nginx 1.29.6 added its own "sticky" directive. When both are built in, the
+# directive of the core module is the one nginx uses, and the configuration
+# of this module is rejected at start up.
+if [ "$HTTP_UPSTREAM_STICKY" = YES ]; then
+cat << END
+
+$0: error: nginx 1.29.6+ has its own "sticky" directive, which conflicts
+with $ngx_addon_name. Configure nginx with --without-http_upstream_sticky_module
+(nginx 1.31.0+) or --without-http_upstream_sticky (nginx 1.29.6 to 1.30.x).
+
+END
+exit 1
+fi
 HTTP_STICKY_DEPS="$ngx_addon_dir/ngx_http_sticky_misc.h"
 HTTP_STICKY_SRCS="$ngx_addon_dir/ngx_http_sticky_module.c $ngx_addon_dir/ngx_http_sticky_misc.c"
 USE_MD5=YES

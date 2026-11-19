@@ -1,4 +1,19 @@
 
+unreleased
+  - support nginx >= 1.23.0 (tested up to 1.31.9)
+    nginx 1.23.0 replaced the cookie arrays with linked lists of
+    ngx_table_elt_t and changed the signatures of
+    ngx_http_parse_multi_header_lines() and ngx_http_parse_set_cookie_lines().
+    Both call sites are guarded by nginx_version, so older releases still build.
+  - nginx >= 1.29.6: read the route cookie with ngx_http_parse_cookie_lines().
+    Since 1.29.6 ngx_http_parse_multi_header_lines() only splits on ",", so the
+    route cookie was not found unless it was the first cookie in the header.
+  - nginx >= 1.29.6: refuse to configure while the core "sticky" module is
+    built in, since its directive has the same name
+  - set next = NULL on the Set-Cookie header the module adds (nginx >= 1.23.0)
+  - guard the MD5/SHA fallback macros with #ifndef to avoid redefinition
+    warnings when OpenSSL headers are included
+
 1.2.5 - 2014-07-07 
   - setting path-defaults to / 
     fixing issue 
